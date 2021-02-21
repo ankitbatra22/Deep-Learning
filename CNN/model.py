@@ -6,10 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
-"""print(training_data[11])
-plt.imshow(training_data[11][0])
-plt.show()
-"""
+
 KERNAL = 5
 
 class Net(nn.Module):
@@ -27,7 +24,9 @@ class Net(nn.Module):
     self.pool2 = nn.MaxPool2d((2,2))
     #self.pool3 = nn.MaxPool2d((2,2))
     self.fc1 = nn.Linear(128*5*5, 512)
-    self.fc2 = nn.Linear(512, 2)
+    self.fc2 = nn.Linear(512, 256)
+    self.fc3 = nn.Linear(256, 1)
+    self.dropout = nn.Dropout(0.25)
 
   def forward(self, x):
     x = F.relu(self.conv1(x))
@@ -36,48 +35,58 @@ class Net(nn.Module):
     x = self.pool2(x)
     x = F.relu(self.conv3(x))
     x = torch.flatten(x, start_dim=1)
+    x = self.dropout(x)
     x = F.relu(self.fc1(x))
-    x = (self.fc2(x))
-    return F.softmax(x, dim=1)
+    x = F.relu(self.fc2(x))
+    x = (self.fc3(x))
+   # print(x)
+    x = F.sigmoid(x)
+   # print(x)
+    return x
 
 net = Net()
 print(net)
 
 
 optimizer = optim.Adam(net.parameters(), lr = 0.001)
-lossFunction = nn.MSELoss()
+lossFunction = nn.BCELoss()
 
 X = torch.Tensor([i[0] for i in training_data])
+X = X / 255.0
 y = torch.Tensor([i[1] for i in training_data])
 
-percent = 0.1
+percent = 0.9
 valSize = int(len(X)*percent)
 
-trainX = X[:-valSize]
-trainY = y[:-valSize]
-#print(trainX)
-
-print(len(trainX))
-print(len(trainY))
+trainX = X[:valSize]
+#print(trianX.shape)
+trainY = y[:valSize]
+#print(trainY.shape)
 #22000
 
-testX = X[-valSize:]
-testY = y[-valSize:]
+testX = X[valSize:]
+testY = y[valSize:]
 
 BatchSize = 100
-EPOCHS = 1
+EPOCHS = 8
+
+
 
 for epoch in range(EPOCHS):
   print(epoch)
   for i in tqdm(range(0, len(trainX), BatchSize)):
-    #print(trainX[i: i + BatchSize].shape)
-    batchX = trainX[0:100].view(-1,1,50,50)
+    batchX = trainX[i:i+BatchSize].view(-1,1,50,50)
+    #print(batchX)
     #print(batchX.shape)
-    batchY = trainY[0:100]
+    batchY = trainY[i:i+BatchSize].view(-1,1)
+    #print(trainY[i:i+BatchSize].shape)
+    #batchX = trainX[1].view(-1,1,50,50)
+    #batchY = trainY[1].view(-1,1)
 
     #Zero Gradient
     optimizer.zero_grad()
     output = net(batchX)
+    #print(output)
     loss = lossFunction(output, batchY)
     loss.backward()
     optimizer.step()
@@ -88,11 +97,12 @@ total = 0
 
 with torch.no_grad():
   for i in range(len(testX)):
-    pog = torch.argmax(testY[i])
-    out = net(testX[i].view(-1,1,50,50))[0]
-    predicted = torch.argmax(out)
-
-    if predicted == pog:
+    pog = (testY[i])
+    #print(pog)
+    out = net(testX[i].view(-1,1,50,50))
+    #print(out.item())
+    predicted = round(out.item(), 0)
+    if int(predicted) == pog:
       correct+=1
     total+=1
 
@@ -100,3 +110,9 @@ print("Accuracy is: ", round(correct/total, 3))
 
 
     
+
+## TO DO:
+# Change to color
+# Deeper Network (dropout, earlystop)
+# Print graphs for loss decrease
+

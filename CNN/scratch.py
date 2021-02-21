@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import torch.nn.functional as f
+import torch.nn.functional as F
 
 """
 ### MAX POOLING VS GLOBAL POOLING?, MINI BATCH, WHAT POOLING LAYER DOES?, why conv layers first and what final output of the conv layer means?
@@ -26,7 +26,7 @@ conv3 = torch.nn.Conv2d(32, 64, 5)
 print(conv3(y).shape)"""
 
 
-conv1 = nn.Conv2d(1, 32, 5)
+"""conv1 = nn.Conv2d(1, 32, 5)
     # Layer 2 sees a 32x46x46
 conv2 = nn.Conv2d(32, 64, 5)
     # Layer 3 sees a 64x42x42
@@ -40,4 +40,11 @@ x = torch.randn(1,1,50,50)
 
 x = (conv3(pool2(conv2(pool1(conv1(x))))))
 x = torch.flatten(x, start_dim=1)
-print(x.shape)
+print(x.shape)"""
+
+
+x = torch.randn(10,2)
+#print(x)
+
+print(F.softmax(x, dim=1))
+

@@ -34,8 +34,8 @@ class Recognize():
           # resize
           img = cv2.resize(img, (self.SIZE, self.SIZE))
           #image followed by one hot vector using np.eye
-          self.training_data.append([np.array(img), np.eye(2)[self.LABELS[label]]])
-
+          #self.training_data.append([np.array(img), np.eye(2)[self.LABELS[label]]])
+          self.training_data.append([np.array(img), self.LABELS[label]])
           #Counter
           if label == self.CATS:
             self.catCount += 1
@@ -58,8 +58,15 @@ if REBUILD:
 # Make Training Data
 training_data = np.load("training_data.npy", allow_pickle=True)
 
-"""print(training_data[11][0].shape)
-plt.imshow(training_data[11][0].reshape(50,50,1))
-plt.show()"""
+print(len(training_data))
+#print((training_data).shape)
+#print(training_data[0:200])
+#print(type(training_data[0][1]))
+
+"""
+print(training_data[13000][0].shape)
+plt.imshow(training_data[13000][0].reshape(50,50,1))
+plt.show()
 
 
+print(training_data[13000])"""
