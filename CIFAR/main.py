@@ -1,8 +1,8 @@
 # Imports
 import itertools
 import keras
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+#import matplotlib.pyplot as plt
+#import matplotlib.image as mpimg
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
@@ -111,7 +111,7 @@ def main():
     # prepare and load cifar10 data
     (xTrain, yTrain), (xValid, yValid), (xTest, yTest) = load_dataset()
 
-    model = net()
+    model = net(xTrain)
 
     # Prepare model for training (categorial_crossentropy since data is represented as a binary class matrix)
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -124,7 +124,7 @@ def main():
                       epochs=EPOCHS, validation_data=(xValid, yValid))
 
     # plot the results
-    plot_results(history)
+    #plot_results(history)
     
     # evaluate model on test data which the model has never seen and print the results
     testLoss, testAcc = model.evaluate(xTest, yTest)
