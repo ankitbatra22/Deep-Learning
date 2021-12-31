@@ -10,10 +10,10 @@ class ConvBlock(nn.Module):
     self.conv  = nn.Sequential(
       nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
       nn.BatchNorm2d(out_channels),
-      nn.ReLU(inplace=True),
+      nn.ReLU(),
       nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
       nn.BatchNorm2d(out_channels),
-      nn.ReLU(inplace=True)
+      nn.ReLU()
     )
 
   def forward(self, x):
@@ -35,22 +35,23 @@ class UNet(nn.Module):
         in_channels = f
 
       # latent space need 512 -> 1024
-      self.latent = nn.Conv2d(features[-1], features[-1]*2, kernel_size=3, padding=1)
+      self.latent = ConvBlock(features[-1], features[-1]*2)
 
       # decoder
       for f in features[::-1]:
         self.upwards.append(
             nn.ConvTranspose2d(
               # in_channels = f*2 because of concatenation from skip connection
-              feature*2, feature, kernel_size=2, stride=2)
+              f*2, f, kernel_size=2, stride=2)
             )
-        self.upwards.append(ConvBlock(feature*2, feature))
+        self.upwards.append(ConvBlock(f*2, f))
         in_channels = f
         
       # final layer
       self.final = nn.Conv2d(features[0], out_channels, kernel_size=1)
 
     def forward(self, x):
+
       # encoder
       encoder_outputs = []
       for block in self.downwards:
@@ -60,14 +61,32 @@ class UNet(nn.Module):
 
       # latent space
       x = self.latent(x)
-      x = x.view(x.size(0), -1, x.size(2), x.size(3))
-      #skip_connection = encoder_outputs[-1]
+      #x = x.view(x.size(0), -1, x.size(2), x.size(3))
+      skip_connections = encoder_outputs[::-1]
 
       # decoder
-      for block in self.upwards:
-        x = F.relu(block(x))
-
+      """for block in self.upwards:
+        x = block(x)
+        # concatenate with skip connection
+        #x = torch.cat((x, skip_connection), 1)
+        #skip_connection = x
       x = self.final(x)
-      x = F.sigmoid(x)
+      return x"""
 
-      return x
+
+      # decoder
+      for layer in range(0, len(self.upwards), 2):
+            x = self.upwards[layer](x)
+            skip_connection = skip_connections[layer//2]
+
+            # need output shape to match inital input shape so ensure at each step stays divisible by 16
+            if x.shape != skip_connection.shape:
+                x = TF.resize(x, size=skip_connection.shape[2:])
+
+            concat_skip = torch.cat((skip_connection, x), dim=1)
+            x = self.upwards[layer+1](concat_skip)
+
+      return self.final(x)
+
+
+
