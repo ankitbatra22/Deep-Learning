@@ -89,4 +89,4 @@ class UNet(nn.Module):
       return self.final(x)
 
 
-
+print(UNet(in_channels=3, out_channels=1, features=[64, 128, 256, 512]).parameters)
