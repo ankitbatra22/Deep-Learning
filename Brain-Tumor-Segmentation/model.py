@@ -28,6 +28,7 @@ class UNet(nn.Module):
       self.downwards = nn.ModuleList()
       self.upwards = nn.ModuleList()
       self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+      # 161 x 161 -> pool (80x80) -> upsample 160 x 160
 
       # encoder
       for f in features:
@@ -89,4 +90,17 @@ class UNet(nn.Module):
       return self.final(x)
 
 
-print(UNet(in_channels=3, out_channels=1, features=[64, 128, 256, 512]).parameters)
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+"""model = UNet(in_channels=3, out_channels=1, features=[64, 128, 256, 512])
+torch.save(model.state_dict(), 'model.pth')"""
+
+def testing():
+  x = torch.randn(3,3,160,160)
+  model = UNet(in_channels=3, out_channels=1, features=[64, 128, 256, 512])
+  pred = model(x)
+  print(pred.shape)
+  print(x.shape)
+
+
