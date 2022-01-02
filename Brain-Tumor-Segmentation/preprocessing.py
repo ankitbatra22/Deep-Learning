@@ -67,39 +67,3 @@ dataset = MRI_Data("LGG-dataset/lgg-mri-segmentation/kaggle_3m/")
 print("the length of the dataset is: ", dataset.__len__())
 print(((dataset.__getitem__(0))))
 
-train_data, test_data = train_test_split(dataset, test_size=0.15, random_state=42)
-train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=10,shuffle=True)
-val_loader = torch.utils.data.DataLoader(dataset=test_data, batch_size=10)
-
-# visualize
-#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-device = (torch.device('cuda') if torch.cuda.is_available()
-else torch.device('cpu'))
-
-def image_convert(image):
-    image = image.clone().cpu().numpy()
-    image = image.transpose((1,2,0))
-    image = (image * 255)
-    return image
-
-def mask_convert(mask):
-    mask = mask.clone().cpu().detach().numpy()
-    return np.squeeze(mask)
-
-def plot_img(no_):
-    iter_ = iter(train_loader)
-    images,masks = next(iter_)
-    images = images.to(device)
-    masks = masks.to(device)
-    plt.figure(figsize=(20,10))
-    for idx in range(0,no_):
-         image = image_convert(images[idx])
-         plt.subplot(2,no_,idx+1)
-         plt.imshow(image)
-    for idx in range(0,no_):
-         mask = mask_convert(masks[idx])
-         plt.subplot(2,no_,idx+no_+1)
-         plt.imshow(mask,cmap='gray')
-    plt.show()
-
-plot_img(7)
