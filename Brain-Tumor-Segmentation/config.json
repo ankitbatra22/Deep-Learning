@@ -1,0 +1,19 @@
+{
+  "model_name": "Brain-MRI Segmentation",
+  "checkpoint": "trainings/jpeg_model/Brain-MRI Segmentation/model.ckpt",
+
+  "data_folder": "LGG-dataset/lgg-mri-segmentation/kaggle_3m/",
+
+  "num_workers": 2,
+
+  "output_dir": "trainings/",
+
+  "batch_size": 10,
+  "clip_size": 18,
+  "img_dimensions": 256,
+  "lr": 0.001,
+  "last_lr": 0.00001,
+  "momentum": 0.9,
+  "weight_decay": 0.00001,
+  "num_epochs": 5
+}
