@@ -97,10 +97,9 @@ def count_parameters(model):
 torch.save(model.state_dict(), 'model.pth')"""
 
 def testing():
-  x = torch.randn(3,3,160,160)
+  x = torch.randn(3,3,256,256)
   model = UNet(in_channels=3, out_channels=1, features=[64, 128, 256, 512])
   pred = model(x)
   print(pred.shape)
   print(x.shape)
-
 
