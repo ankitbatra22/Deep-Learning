@@ -7,6 +7,10 @@ import tqdm
 from os.path import isfile, join
 import random
 import os
+from skimage import io, transform
+from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
 
 dataset_path = '/Users/ankitbatra/Downloads/brain-tumour-dataset'
 
@@ -14,45 +18,7 @@ train_path = dataset_path + '/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingDa
 
 first_example = train_path + 'BraTS20_Training_001/'
 
-print(first_example)
-
-import nibabel as nib
-img = nib.load(first_example+'BraTS20_Training_001_flair.nii')
-data = img.get_fdata()
-print(type(data))
-
-
-#'/Users/ankitbatra/Downloads/brain-tumour-dataset/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_flair.nii'
-
-DIR = "/Users/ankitbatra/VScode-Workspaces/Grind/ML/Brain-Tumor-Segmentation/LGG-dataset/lgg-mri-segmentation/kaggle_3m"
-INPUT_CHANNELS = 3
-TARGET_CHANNELS = 1
-SIZE = 256
-BATCH_SIZE = 32
-
-mri_images_with_tumer = []
-mri_images_without_tumer = []
-mask_images_with_tumer = []
-mask_images_without_tumer = []
-
-patients = os.listdir(DIR)
-for patient in (patients):
-    if isfile(join(DIR, patient)) == False:
-        images = os.listdir(join(DIR, patient))
-        mask_images = list(filter(lambda x: x.find('mask') != -1, images))
-        mri_images = list(filter(lambda x: x.find('mask') == -1, images))
-        
-        for mask_image in mask_images:
-            mask = np.asarray(load_image(join(DIR, patient, mask_image)))
-            if np.amax(mask) != 0:
-                mri_images_with_tumer.append(join(patient, mask_image.replace('_mask', '')))
-                mask_images_with_tumer.append(join(patient, mask_image))
-            else:
-                mri_images_without_tumer.append(join(patient, mask_image.replace('_mask', '')))
-                mask_images_without_tumer.append(join(patient, mask_image))
-
-
-class Brain_data(Dataset):
+class MRI_Data(Dataset):
     def __init__(self,path):
         self.path = path
         self.patients = [file for file in os.listdir(path) if file not in ['data.csv','README.md']]
@@ -78,15 +44,62 @@ class Brain_data(Dataset):
         image = io.imread(image)
         image = transform.resize(image,(256,256))
         image = image / 255
+        # HWC-> CHW format
         image = image.transpose((2, 0, 1))
         
         
         mask = io.imread(mask)
         mask = transform.resize(mask,(256,256))
         mask = mask / 255
+        # HWC-> CHW format
         mask = np.expand_dims(mask,axis=-1).transpose((2, 0, 1))
 
-        image = torch.from_numpy(image)
-        mask = torch.from_numpy(mask)
+        #convert the numpy array image and mask to torch tensors
+        image = torch.from_numpy(image).float()
+        mask = torch.from_numpy(mask).float()
+
+        #image = torch.from_numpy(image).to_device('cuda')
+        #mask = torch.from_numpy(mask).to_device('cuda')
         
         return (image,mask)
+
+dataset = MRI_Data("LGG-dataset/lgg-mri-segmentation/kaggle_3m/")
+print("the length of the dataset is: ", dataset.__len__())
+print(((dataset.__getitem__(0))))
+
+train_data, test_data = train_test_split(dataset, test_size=0.15, random_state=42)
+train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=10,shuffle=True)
+val_loader = torch.utils.data.DataLoader(dataset=test_data, batch_size=10)
+
+# visualize
+#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = (torch.device('cuda') if torch.cuda.is_available()
+else torch.device('cpu'))
+
+def image_convert(image):
+    image = image.clone().cpu().numpy()
+    image = image.transpose((1,2,0))
+    image = (image * 255)
+    return image
+
+def mask_convert(mask):
+    mask = mask.clone().cpu().detach().numpy()
+    return np.squeeze(mask)
+
+def plot_img(no_):
+    iter_ = iter(train_loader)
+    images,masks = next(iter_)
+    images = images.to(device)
+    masks = masks.to(device)
+    plt.figure(figsize=(20,10))
+    for idx in range(0,no_):
+         image = image_convert(images[idx])
+         plt.subplot(2,no_,idx+1)
+         plt.imshow(image)
+    for idx in range(0,no_):
+         mask = mask_convert(masks[idx])
+         plt.subplot(2,no_,idx+no_+1)
+         plt.imshow(mask,cmap='gray')
+    plt.show()
+
+plot_img(7)
