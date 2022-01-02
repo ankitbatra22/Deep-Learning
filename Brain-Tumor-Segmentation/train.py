@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from model import UNet
 from preprocessing import MRI_Data
 import json
+import time
 
 with open('config.json') as f:
     config = json.load(f)
@@ -21,7 +22,7 @@ with open('config.json') as f:
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # load the dataset
-dataset = MRI_Data(config['dataset_folder'])
+dataset = MRI_Data(config['data_folder'])
 print("the length of the dataset is: ", dataset.__len__())
 
 # split the dataset into train and test
@@ -34,8 +35,58 @@ val_loader = torch.utils.data.DataLoader(dataset=test_data, batch_size=config['b
 # create the model
 model = UNet(in_channels=3, out_channels=1).to(DEVICE)
 
-criterion = nn.BCEwithLogitsLoss()
+criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=config['lr'])
 
 
+train_loss = []
+val_loss = []
 
+# training loop
+for epoch in range(config['num_epochs']):
+    print('Epoch: ', epoch)
+    start_time = time.time()
+    
+    running_train_loss = []
+    
+    for image, mask in train_loader: 
+            image = image.to(DEVICE,dtype=torch.float)
+            mask = mask.to(DEVICE,dtype=torch.float)
+            
+            pred_mask = model.forward(image)
+            loss = criterion(pred_mask,mask)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            running_train_loss.append(loss.item())
+                              
+
+    else:           
+        running_val_loss = []
+        
+        with torch.no_grad():
+            for image,mask in val_loader:
+                    image = image.to(device,dtype=torch.float)
+                    mask = mask.to(device,dtype=torch.float)                            
+                    pred_mask = model.forward(image)
+                    loss = criterion(pred_mask,mask)
+                    running_val_loss.append(loss.item())
+                                    
+    
+    epoch_train_loss = np.mean(running_train_loss) 
+    print('Train loss: {}'.format(epoch_train_loss))                       
+    train_loss.append(epoch_train_loss)
+    
+    epoch_val_loss = np.mean(running_val_loss)
+    print('Validation loss: {}'.format(epoch_val_loss))                                
+    val_loss.append(epoch_val_loss)
+                      
+    time_elapsed = time.time() - start_time
+    print('{:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+
+
+plt.plot(train_loss,label='train_loss')
+plt.plot(val_loss,label='val_loss')
+plt.legend()
+plt.title('Loss Plot')
+plt.show()
